@@ -42,13 +42,14 @@ from util import manhattanDistance
 import util
 from typing import List, Tuple, Dict
 
+
 class GhostAgent(Agent):
     """Base class for ghost agents."""
-    
+
     def __init__(self, index: int) -> None:
         """
         Initialize ghost agent.
-        
+
         Args:
             index: Index of this ghost agent
         """
@@ -57,10 +58,10 @@ class GhostAgent(Agent):
     def getAction(self, state: GameState) -> str:
         """
         Get an action from the distribution.
-        
+
         Args:
             state: Current game state
-            
+
         Returns:
             Direction to move in
         """
@@ -73,25 +74,26 @@ class GhostAgent(Agent):
     def getDistribution(self, state: GameState) -> util.Counter:
         """
         Returns a Counter encoding a distribution over actions from the provided state.
-        
+
         Args:
             state: Current game state
-            
+
         Returns:
             Counter with probabilities for each action
         """
         util.raiseNotDefined()
 
+
 class RandomGhost(GhostAgent):
     """A ghost that chooses a legal action uniformly at random."""
-    
+
     def getDistribution(self, state: GameState) -> util.Counter:
         """
         Get uniform random distribution over legal actions.
-        
+
         Args:
             state: Current game state
-            
+
         Returns:
             Counter with equal probabilities for each legal action
         """
@@ -101,13 +103,14 @@ class RandomGhost(GhostAgent):
         dist.normalize()
         return dist
 
+
 class DirectionalGhost(GhostAgent):
     """A ghost that prefers to rush Pacman, or flee when scared."""
-    
+
     def __init__(self, index: int, prob_attack: float = 0.8, prob_scaredFlee: float = 0.8) -> None:
         """
         Initialize directional ghost.
-        
+
         Args:
             index: Index of this ghost
             prob_attack: Probability of moving toward Pacman when not scared
@@ -120,10 +123,10 @@ class DirectionalGhost(GhostAgent):
     def getDistribution(self, state: GameState) -> util.Counter:
         """
         Get distribution favoring moving toward/away from Pacman.
-        
+
         Args:
             state: Current game state
-            
+
         Returns:
             Counter with action probabilities based on Pacman's position
         """
@@ -135,19 +138,22 @@ class DirectionalGhost(GhostAgent):
 
         speed = 0.5 if isScared else 1
 
-        actionVectors = [Actions.directionToVector(a, speed) for a in legalActions]
+        actionVectors = [Actions.directionToVector(
+            a, speed) for a in legalActions]
         newPositions = [(pos[0] + a[0], pos[1] + a[1]) for a in actionVectors]
         pacmanPosition = state.getPacmanPosition()
 
         # Select best actions given the state
-        distancesToPacman = [manhattanDistance(pos, pacmanPosition) for pos in newPositions]
+        distancesToPacman = [manhattanDistance(
+            pos, pacmanPosition) for pos in newPositions]
         if isScared:
             bestScore = max(distancesToPacman)
             bestProb = self.prob_scaredFlee
         else:
             bestScore = min(distancesToPacman)
             bestProb = self.prob_attack
-        bestActions = [action for action, distance in zip(legalActions, distancesToPacman) if distance == bestScore]
+        bestActions = [action for action, distance in zip(
+            legalActions, distancesToPacman) if distance == bestScore]
 
         # Construct distribution
         dist = util.Counter()

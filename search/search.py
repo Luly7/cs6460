@@ -47,11 +47,11 @@ Please implement the requested search algorithms below. The search algorithms wi
 be used by the Pacman agents to find paths through the maze.
 ================================================================================
 """
+from typing import List, Tuple, Any, Optional, Dict, Callable
+from util import Stack, Queue, PriorityQueue, Counter
+import util
 import abc
 from game import Directions
-import util
-from util import Stack, Queue, PriorityQueue, Counter
-from typing import List, Tuple, Any, Optional, Dict, Callable
 
 
 class SearchProblem(metaclass=abc.ABCMeta):
@@ -98,7 +98,7 @@ class SearchProblem(metaclass=abc.ABCMeta):
         Returns:
             List of tuples, each containing:
                 - successor: A successor state
-                - action: Action required to reach successor 
+                - action: Action required to reach successor
                 - stepCost: Cost of taking the action
         """
         return
@@ -155,35 +155,25 @@ def depthFirstSearch(problem: 'SearchProblem') -> List[str]:
         >>> print(f"Is start a goal? {problem.isGoalState(problem.getStartState())}")
         >>> print(f"Start's successors: {problem.getSuccessors(problem.getStartState())}")
     """
-    "*** YOUR CODE HERE ***"
+# =================DFS STARTS HERE =======================
+# DFS acts like a LIFO stack of paths.  DFS uses a stack so it goes deep before exploring others
+    expansion_order = Stack()
+    expansion_order.push((problem.getStartState(), []))
+    visited = set()  # Track visited states
 
-    # Initialize stack with (state, path)tuples
-    frontier = Stack()
-    frontier.push((problem.getStartState(), []))
-
-    # Track visited states to avoid cycles
-    visited = set()
-
-    while not frontier.isEmpty():
-        state, path = frontier.pop()
-
-        # Skip if already visited
-        if state in visited:
+    while not expansion_order.isEmpty():
+        state, path = expansion_order.pop()  # Pop the next state
+        if state in visited:  # Skip if already visited
             continue
-
-        # Mark as visited
-        visited.add(state)
-
-        # Check if goal
-        if problem.isGoalState(state):
+        visited.add(state)  # Mark the state as visited
+        if problem.isGoalState(state):  # Check if this is the goal
             return path
-
-        # Add successors to frontier
+        # Expands successors
         for successor, action, cost in problem.getSuccessors(state):
             if successor not in visited:
-                frontier.push((successor, path + [action]))
-
-    return []  # No solution found
+                expansion_order.push((successor, path + [action]))
+    return []
+# ================ DFS ends here ===================
 
 
 def breadthFirstSearch(problem: 'SearchProblem') -> List[str]:
@@ -199,28 +189,25 @@ def breadthFirstSearch(problem: 'SearchProblem') -> List[str]:
         List[str]: A sequence of actions that reaches the goal state,
                   or empty list if no solution exists
     """
-    "*** YOUR CODE HERE ***"
-    frontier = Queue()
-    frontier.push((problem.getStartState(), []))
-
-    # Track visited states to avoid cycles
+# ================= BFS STARTS HERE =========================
+    # BFS is a FIFO data structure
+    expansion_order = Queue()
+    expansion_order.push((problem.getStartState(), []))
     visited = set()
     visited.add(problem.getStartState())
 
-    while not frontier.isEmpty():
-        state, path = frontier.pop()
-
-        # Check if goal
+    while not expansion_order.isEmpty():
+        state, path = expansion_order.pop()
         if problem.isGoalState(state):
             return path
-
-        # Add successors to frontier
         for successor, action, cost in problem.getSuccessors(state):
             if successor not in visited:
                 visited.add(successor)
-                frontier.push((successor, path + [action]))
+                expansion_order.push((successor, path + [action]))
+    return []  # No goal reached
 
-    return []  # No solution found
+
+# ==============BFS ENDS HERE==========================
 
 
 def uniformCostSearch(problem: 'SearchProblem') -> List[str]:
@@ -236,36 +223,27 @@ Returns:
     List[str]: A sequence of actions that reaches the goal state with minimum
               total cost, or empty list if no solution exists
 """
-    "*** YOUR CODE HERE ***"
-    # Initialize priority queue with (state, path, cost) tuples
-    frontier = PriorityQueue()
-    frontier.push((problem.getStartState(), [], 0), 0)
+# ====================UCS STARTS HERE===============================
 
-    # Track visited states to avoid cycles
+    # UCS expands the cheapest node first
+    expansion_order = PriorityQueue()
+    expansion_order.push((problem.getStartState(), [], 0), 0)
     visited = set()
 
-    while not frontier.isEmpty():
-        state, path, total_cost = frontier.pop()
-
-        # Skip if already visited
+    while not expansion_order.isEmpty():
+        state, path, total_cost = expansion_order.pop()
         if state in visited:
             continue
-
-        # Mark as visited
         visited.add(state)
-
-        # Check if goal
         if problem.isGoalState(state):
             return path
-
-        # Add successors to frontier
         for successor, action, step_cost in problem.getSuccessors(state):
             if successor not in visited:
                 new_cost = total_cost + step_cost
                 new_path = path + [action]
-                frontier.push((successor, new_path, new_cost), new_cost)
-
-    return []  # No solution found
+                expansion_order.push((successor, new_path, new_cost), new_cost)
+    return []
+# ===================UCS ENDS HERE ==========================
 
 
 def nullHeuristic(state: Any, problem: Optional['SearchProblem'] = None) -> float:
@@ -299,40 +277,29 @@ def aStarSearch(problem: 'SearchProblem', heuristic: Callable = nullHeuristic) -
         List[str]: A sequence of actions that reaches the goal state with optimal cost,
                   or empty list if no solution exists
     """
-    "*** YOUR CODE HERE ***"
-    # Initialize priority queue with (state, path, cost) tuples
-    frontier = PriorityQueue()
-    start_state = problem.getStartState()
-    frontier.push((start_state, [], 0), heuristic(start_state, problem))
+   # =================ASTAR STARTS HERE=================
 
-    # Track visited states to avoid cycles
+    expansion_order = PriorityQueue()
+    start_state = problem.getStartState()
+    expansion_order.push((start_state, [], 0), heuristic(start_state, problem))
     visited = set()
 
-    while not frontier.isEmpty():
-        state, path, g_cost = frontier.pop()
-
-        # Skip if already visited
+    while not expansion_order.isEmpty():
+        state, path, g_cost = expansion_order.pop()
         if state in visited:
             continue
-
-        # Mark as visited
         visited.add(state)
 
-        # Check if goal
         if problem.isGoalState(state):
             return path
-
-        # Add successors to frontier
         for successor, action, step_cost in problem.getSuccessors(state):
             if successor not in visited:
                 new_g_cost = g_cost + step_cost
                 new_path = path + [action]
-                # f(n) = g(n) + h(n)
                 f_cost = new_g_cost + heuristic(successor, problem)
-                frontier.push((successor, new_path, new_g_cost), f_cost)
-
-    return []  # No solution found
-
+                expansion_order.push((successor, new_path, new_g_cost), f_cost)
+    return []  # No results
+# ================ ASTAR ENDS HERE========================
     # Abbreviations - Common search algorithm aliases with type hints
     bfs: Callable[[SearchProblem], List[str]] = breadthFirstSearch
     dfs: Callable[[SearchProblem], List[str]] = depthFirstSearch

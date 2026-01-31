@@ -405,22 +405,29 @@ class CornersProblem(search.SearchProblem):
             if not startingGameState.hasFood(*corner):
                 print(f'Warning: no food in corner {corner}')
         self._expanded = 0
+# ===========CODE STARTS HERE==============
         self.startingGameState = startingGameState
+# ==========CODE ENDS HERE===========
 
     def getStartState(self) -> Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]]:
         """Get the initial search state."""
+# ============CODE STARTS HERE===============
         return (self.startingPosition, ())
+# ===========CODE ENDS HERE=================
 
     def isGoalState(self, state: Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]]) -> bool:
         """Check if current state is a goal state."""
-        position, visited_corners = state
-        return len(visited_corners) == 4
+# ============CODE STARTS HERE========
+        position, visited_path = state
+        return len(visited_path) == 4
+# ===========CODE ENDS HERE===========
 
     def getSuccessors(self, state: Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]]) -> List[Tuple[Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]], str, int]]:
         """Get successor states and their associated actions and costs."""
+# ==============CODE STARTS HERE=======
         successors = []
-        position, visited_corners = state
-
+        position, visited_path = state
+    # The next lines figure out whether a new position htis a wall
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
             x, y = position
             dx, dy = Actions.directionToVector(action)
@@ -429,15 +436,14 @@ class CornersProblem(search.SearchProblem):
             if not self.walls[nextx][nexty]:
                 next_position = (nextx, nexty)
 
-                # Update visited corners if we reached a new corner
-                next_visited = visited_corners
-                if next_position in self.corners and next_position not in visited_corners:
+                next_visited = visited_path
+                if next_position in self.corners and next_position not in visited_path:
                     next_visited = tuple(
-                        sorted(visited_corners + (next_position,)))
+                        sorted(visited_path + (next_position,)))
 
                 next_state = (next_position, next_visited)
                 successors.append((next_state, action, 1))
-
+# =============CODE ENDS HERE===========
         self._expanded += 1
         return successors
 
@@ -457,28 +463,30 @@ class CornersProblem(search.SearchProblem):
 def cornersHeuristic(state: Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]],
                      problem: 'CornersProblem') -> float:
     """Calculate an admissible heuristic for the CornersProblem."""
-    position, visited_corners = state
+    # ============= CODE STARTS HERE =============
+    position, visited_path = state
     unvisited = [
-        corner for corner in problem.corners if corner not in visited_corners]
+        corner for corner in problem.corners if corner not in visited_path]
 
     if not unvisited:
         return 0
 
-    current_pos = position
+    current_position = position
     total_distance = 0
     remaining = list(unvisited)
 
     while remaining:
-        distances = [abs(current_pos[0] - corner[0]) + abs(current_pos[1] - corner[1])
+        distances = [abs(current_position[0] - corner[0]) + abs(current_position[1] - corner[1])
                      for corner in remaining]
         min_distance = min(distances)
         min_idx = distances.index(min_distance)
 
         total_distance += min_distance
-        current_pos = remaining[min_idx]
+        current_position = remaining[min_idx]
         remaining.pop(min_idx)
 
     return total_distance
+# ===============CODE ENDS HERE================
 
 
 class AStarCornersAgent(SearchAgent):
@@ -550,18 +558,19 @@ class AStarFoodSearchAgent(SearchAgent):
 
 def foodHeuristic(state: Tuple[Tuple[int, int], 'Grid'], problem: 'FoodSearchProblem') -> float:
     """Calculate an admissible heuristic for the FoodSearchProblem."""
+  # ========CODE STARTS HERE======
     position, food_grid = state
-    food_list = food_grid.asList()
+    food_list = food_grid.asList()  # Unpacks the state
 
-    if not food_list:
+    if not food_list:  # if there is no food left, the goal is reached
         return 0
 
-    if len(food_list) == 1:
+    if len(food_list) == 1:   # best case-goal reached
         return abs(position[0] - food_list[0][0]) + abs(position[1] - food_list[0][1])
-
+    # Single food case: Manhattan distance
     min_to_food = min(abs(position[0] - food[0]) + abs(position[1] - food[1])
                       for food in food_list)
-
+# Finds maximum distance between any two food pellets
     max_between_foods = 0
     for i, food1 in enumerate(food_list):
         for food2 in food_list[i+1:]:
@@ -569,6 +578,8 @@ def foodHeuristic(state: Tuple[Tuple[int, int], 'Grid'], problem: 'FoodSearchPro
             max_between_foods = max(max_between_foods, dist)
 
     return min_to_food + max_between_foods
+
+# ============CODE ENDS HERE===============
 
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -620,8 +631,11 @@ class ClosestDotSearchAgent(SearchAgent):
         Returns:
             List[str]: Sequence of actions to reach closest food dot
         """
+# =============CODE STARTS HERE==========
         problem = AnyFoodSearchProblem(gameState)
         return search.bfs(problem)
+
+# ==============CODE ENDS HERE=============
 
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -666,4 +680,38 @@ class AnyFoodSearchProblem(PositionSearchProblem):
             bool: True if position contains food, False otherwise
         """
         x, y = state
+# ==============CODE STARTS HERE=========
         return self.food[x][y]
+# ==============CODE ENDS HERE===========
+
+
+def mazeDistance(point1: Tuple[int, int], point2: Tuple[int, int],
+                 gameState: 'GameState') -> int:
+    """Calculate the shortest path distance between two points in the maze.
+
+    Uses breadth-first search to find the shortest path between points through
+    the maze, ignoring Pacman's current position in the game state.
+
+    Args:
+        point1: Starting (x,y) coordinates
+        point2: Goal (x,y) coordinates  
+        gameState: GameState object containing maze layout
+
+    Returns:
+        int: Length of shortest path between points
+
+    Raises:
+        AssertionError: If either point1 or point2 is located on a wall
+
+    Example:
+        >>> mazeDistance((2,4), (5,6), gameState)
+        8
+    """
+    x1, y1 = point1
+    x2, y2 = point2
+    walls = gameState.getWalls()
+    assert not walls[x1][y1], f'point1 is a wall: {point1}'
+    assert not walls[x2][y2], f'point2 is a wall: {point2}'
+    prob = PositionSearchProblem(
+        gameState, start=point1, goal=point2, warn=False, visualize=False)
+    return len(search.bfs(prob))
