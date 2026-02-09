@@ -59,15 +59,15 @@ Good luck and happy searching!
 ================================================================================
 """
 
-from typing import List, Tuple, Any, Optional, Callable, Dict
-import search
-import time
-import util
-from game import Actions
-from game import Agent
-from game import Directions
 import math
 from math import dist
+from game import Directions
+from game import Agent
+from game import Actions
+import util
+import time
+import search
+from typing import List, Tuple, Any, Optional, Callable, Dict
 
 
 class GoWestAgent(Agent):
@@ -620,9 +620,12 @@ class ClosestDotSearchAgent(SearchAgent):
         self.actionIndex = 0
         print(f'Path found with cost {len(self.actions)}')
 
-    def findPathToClosestDot(self, gameState: 'GameState') -> List[str]:
-        """Find a path to the closest food dot from the current state.
 
+.
+
+
+def findPathToClosestDot(self, gameState: 'GameState') -> List[str]:
+    """Find a path to the closest food dot from the current state
         Uses breadth-first search to find shortest path to nearest food pellet.
 
         Args:
@@ -632,8 +635,8 @@ class ClosestDotSearchAgent(SearchAgent):
             List[str]: Sequence of actions to reach closest food dot
         """
 # =============CODE STARTS HERE==========
-        problem = AnyFoodSearchProblem(gameState)
-        return search.bfs(problem)
+    problem = AnyFoodSearchProblem(gameState)
+    return search.bfs(problem)
 
 # ==============CODE ENDS HERE=============
 
