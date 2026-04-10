@@ -12,6 +12,8 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from game import Actions
+from distanceCalculator import Distancer
 import util
 from game import Agent
 from game import Directions
@@ -109,7 +111,8 @@ class BustersAgent:
     def observationFunction(self, gameState):
         "Removes the ghost states from the gameState"
         agents = gameState.data.agentStates
-        gameState.data.agentStates = [agents[0]] + [None for i in range(1, len(agents))]
+        gameState.data.agentStates = [agents[0]] + \
+            [None for i in range(1, len(agents))]
         return gameState
 
     def getAction(self, gameState):
@@ -143,11 +146,6 @@ class BustersKeyboardAgent(BustersAgent, KeyboardAgent):
         return KeyboardAgent.getAction(self, gameState)
 
 
-from distanceCalculator import Distancer
-from game import Actions
-from game import Directions
-
-
 class GreedyBustersAgent(BustersAgent):
     "An agent that charges the closest ghost."
 
@@ -170,5 +168,17 @@ class GreedyBustersAgent(BustersAgent):
             for i, beliefs in enumerate(self.ghostBeliefs)
             if livingGhosts[i + 1]
         ]
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        "========================= CODE STARTS HERE ==========================="
+        MostLikelyPos = [dist.argMax()
+                         for dist in livingGhostPositionDistributions]
+
+        def min_distance_to_ghost(action):
+            closest_ghost = Actions.getSuccessor(pacmanPosition, action)
+            return min(
+                self.distancer.getDistance(closest_ghost, pos)
+                for pos in MostLikelyPos
+            )
+
+        result = min(legal, key=min_distance_to_ghost)
+        return result
+        "=================== CODE ENDS HERE ========================="
