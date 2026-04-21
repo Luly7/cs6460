@@ -50,7 +50,6 @@ from learningAgents import ReinforcementAgent
 from featureExtractors import *
 
 
-
 class QLearningAgent(ReinforcementAgent):
     """
     Q-Learning Agent that learns through experience.
@@ -71,12 +70,14 @@ class QLearningAgent(ReinforcementAgent):
         - self.alpha: Learning rate
         - self.discount: Discount factor for future rewards
     """
+
     def __init__(self, **args) -> None:
         """Initialize Q-learning agent with empty Q-value table."""
         ReinforcementAgent.__init__(self, **args)
 
-        "*** YOUR CODE HERE ***"
-
+        "*** CODE STARTS HERE ***"
+        self.qValues = util.Counter()
+        "*** CODE ENDS HERE ***"
 
     def getQValue(self, state: Any, action: Any) -> float:
         """
@@ -89,8 +90,9 @@ class QLearningAgent(ReinforcementAgent):
         Returns:
             float: Q-value for the state-action pair, 0.0 if never seen
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        "*** CODE STARTS HERE ***"
+        return self.qValues[(state, action)]
+        "*** CODE ENDS HERE"
 
     def computeValueFromQValues(self, state: Any) -> float:
         """
@@ -102,9 +104,12 @@ class QLearningAgent(ReinforcementAgent):
         Returns:
             float: Maximum Q-value, 0.0 if no legal actions exist
         """
-        "*** YOUR CODE HERE ***"
-
-        util.raiseNotDefined()
+        "***  CODE  STARTS HERE ***"
+        actions = self.getLegalActions(state)
+        if not actions:
+            return 0.0
+        return max(self.getQValue(state, action) for action in actions)
+        "*** CODE ENDS HERE ***"
 
     def computeActionFromQValues(self, state: Any) -> Any:
         """
@@ -116,10 +121,15 @@ class QLearningAgent(ReinforcementAgent):
         Returns:
             Action: Best action to take, None if no legal actions exist
         """
-        "*** YOUR CODE HERE ***"
-
-        util.raiseNotDefined()
-
+        "*** CODE STARTS HERE ***"
+        actions = self.getLegalActions(state)
+        if not actions:
+            return None
+        best_value = self.computeValueFromQValues(state)
+        best_actions = [a for a in actions if self.getQValue(
+            state, a) == best_value]
+        return random.choice(best_actions)
+        "*** CODE ENDS HERE ***"
 
     def getAction(self, state: Any) -> Any:
         """
@@ -137,9 +147,12 @@ class QLearningAgent(ReinforcementAgent):
         # Pick Action
         actions = self.getLegalActions(state)
         action = None
-        "*** YOUR CODE HERE ***"
-
-        util.raiseNotDefined()
+        "*** CODE STARTS HERE ***"
+        if not actions:
+            return None
+        if util.flipCoin(self.epsilon):
+            return random.choice(actions)
+        return self.computeActionFromQValues(state)
 
     def update(self, state: Any, action: Any, s_prime: Any, reward: float) -> None:
         """
@@ -154,8 +167,15 @@ class QLearningAgent(ReinforcementAgent):
             s_prime: Resulting next state
             reward: Reward received
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        "*** CODE STARTS HERE ***"
+
+        current_Q = self.getQValue(state, action)
+        future_V = self.computeValueFromQValues(s_prime)
+        target = reward + self.discount * future_V
+        self.qValues[(state, action)] = (1 - self.alpha) * \
+            current_Q + self.alpha * target
+
+        "*** CODE ENDS HERE ***"
 
     def getPolicy(self, state: Any) -> Any:
         return self.computeActionFromQValues(state)
@@ -167,7 +187,7 @@ class QLearningAgent(ReinforcementAgent):
 class PacmanQAgent(QLearningAgent):
     """Q-Learning agent adapted for Pacman with modified default parameters."""
 
-    def __init__(self, epsilon: float=0.05, gamma: float=0.8, alpha: float=0.2, numTraining: int=0, **args) -> None:
+    def __init__(self, epsilon: float = 0.05, gamma: float = 0.8, alpha: float = 0.2, numTraining: int = 0, **args) -> None:
         """
         Initialize PacmanQAgent with specific default parameters.
 
@@ -195,8 +215,8 @@ class PacmanQAgent(QLearningAgent):
         Returns:
             Action: Selected action
         """
-        action = QLearningAgent.getAction(self,state)
-        self.doAction(state,action)
+        action = QLearningAgent.getAction(self, state)
+        self.doAction(state, action)
         return action
 
 
@@ -208,7 +228,8 @@ class ApproximateQAgent(PacmanQAgent):
     representing them as a weighted sum of features. Only getQValue
     and update methods need to be modified from the base QLearningAgent.
     """
-    def __init__(self, extractor: str='IdentityExtractor', **args) -> None:
+
+    def __init__(self, extractor: str = 'IdentityExtractor', **args) -> None:
         self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
         self.weights = util.Counter()
@@ -227,8 +248,10 @@ class ApproximateQAgent(PacmanQAgent):
         Returns:
             float: Approximated Q-value
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        "*** CODE STARTS HERE ***"
+        features = self.featExtractor.getFeatures(state, action)
+        return self.weights * features
+        "*** CODE ENDS HERE ***"
 
     def update(self, state: Any, action: Any, nextState: Any, reward: float) -> None:
         """
@@ -240,9 +263,15 @@ class ApproximateQAgent(PacmanQAgent):
             nextState: Resulting state
             reward: Reward received
         """
-        "*** YOUR CODE HERE ***"
+        "*** CODE STARTS HERE ***"
+        features = self.featExtractor.getFeatures(state, action)
+        current_Q = self.getQValue(state, action)
+        future_V = self.computeValueFromQValues(nextState)
+        difference = (reward + self.discount * future_V) - current_Q
 
-        util.raiseNotDefined()
+        for feature, value in features.items():
+            self.weights[feature] += self.alpha * difference * value
+        "***  CODE ENDS HERE  *** "
 
     def final(self, state: Any) -> None:
         """
@@ -257,5 +286,6 @@ class ApproximateQAgent(PacmanQAgent):
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
             # you might want to print your weights here for debugging
-            "*** YOUR CODE HERE ***"
-            pass
+            "*** CODE STARTS HERE ***"
+            print(f"Training complete. Final weights: {self.weights}")
+            "*** CODEN ENDS HERE ***"

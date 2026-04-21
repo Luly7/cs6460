@@ -36,19 +36,22 @@ Changes:
 """
 
 import math
-import mdp, util
+import mdp
+import util
 
 from learningAgents import ValueEstimationAgent
 import collections
+
 
 class ValueIterationAgent(ValueEstimationAgent):
     """
     A ValueIterationAgent takes a Markov decision process (see mdp.py) on initialization 
     and runs value iteration for a given number of iterations using the supplied discount factor.
-    
+
     The agent implements value iteration using the Bellman equation to iteratively compute
     optimal values for each state in the MDP.
     """
+
     def __init__(self, mdp: 'mdp.MarkovDecisionProcess', discount: float = 0.9, iterations: int = 100) -> None:
         """
         Initialize the value iteration agent.
@@ -68,7 +71,7 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.mdp = mdp
         self.discount = discount
         self.iterations = iterations
-        self.values = util.Counter() # A Counter is a dict with default 0
+        self.values = util.Counter()  # A Counter is a dict with default 0
         self.runValueIteration()
 
     def runValueIteration(self) -> None:
@@ -78,9 +81,20 @@ class ValueIterationAgent(ValueEstimationAgent):
         updating values one at a time using newly computed values.
         """
         # Write value iteration code here
-        "*** YOUR CODE HERE ***"
-    
-
+        "*** CODE STARTS HERE ***"
+        for _ in range(self.iterations):
+            new_values = util.Counter()
+            for state in self.mdp.getStates():
+                if self.mdp.isTerminal(state):
+                    new_values[state] = 0
+                else:
+                    actions = self.mdp.getPossibleActions(state)
+                    if actions:
+                        new_values[state] = max(
+                            self.computeQValueFromValues(state, action)
+                            for action in actions
+                        )
+            self.values = new_values
 
     def getValue(self, state) -> float:
         """
@@ -94,7 +108,6 @@ class ValueIterationAgent(ValueEstimationAgent):
         """
         return self.values[state]
 
-
     def computeQValueFromValues(self, state, action) -> float:
         """
         Compute the Q-value Q(s,a) for the given state-action pair using
@@ -107,21 +120,33 @@ class ValueIterationAgent(ValueEstimationAgent):
         Returns:
             The Q-value for the state-action pair
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        "*** CODE STARTS HERE***"
+        q_value = 0
+        for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+            reward = self.mdp.getReward(state, action, nextState)
+            q_value += prob * (reward + self.discount * self.values[nextState])
+        return q_value
+        "*** CODE ENDS HERE***"
 
     def computeActionFromValues(self, state):
         """
         Compute the optimal action to take in a state based on the stored value function.
-        
+
         Args:
             state: The state to compute the optimal action for
 
         Returns:
             The optimal action, or None if state is terminal or has no legal actions
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        "*** CODE STARTS HERE ***"
+        if self.mdp.isTerminal(state):
+            return None
+        actions = self.mdp.getPossibleActions(state)
+        if not actions:
+            return None
+        return max(actions, key=lambda action: self.computeQValueFromValues(state, action))
+        "*** CODE ENDS HERE ***"
+
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
 
@@ -132,14 +157,16 @@ class ValueIterationAgent(ValueEstimationAgent):
     def getQValue(self, state, action):
         return self.computeQValueFromValues(state, action)
 
+
 class AsynchronousValueIterationAgent(ValueIterationAgent):
     """
     An AsynchronousValueIterationAgent performs cyclic value iteration, updating one state
     at a time rather than batch updating all states.
-    
+
     The agent cycles through states in order, updating each state's value using the current
     values of other states.
     """
+
     def __init__(self, mdp: 'mdp.MarkovDecisionProcess', discount: float = 0.9, iterations: int = 1000) -> None:
         """
         Initialize the asynchronous value iteration agent.
@@ -156,7 +183,18 @@ class AsynchronousValueIterationAgent(ValueIterationAgent):
         Performs asynchronous value iteration by cycling through states and
         updating one state value at a time.
         """
-        "*** YOUR CODE HERE ***"
+        "*** CODE STARTS HERE ***"
+        states = self.mdp.getStates()
+        for i in range(self.iterations):
+            state = states[i % len(states)]
+            if not self.mdp.isTerminal(state):
+                actions = self.mdp.getPossibleActions(state)
+                if actions:
+                    self.values[state] = max(
+                        self.computeQValueFromValues(state, action)
+                        for action in actions
+                    )
+        "*** CODE ENDS HERE ***"
 
 
 class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
@@ -168,9 +206,10 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
         A PrioritizedSweepingValueIterationAgent takes a Markov decision process
         (see mdp.py) on initialization and runs prioritized sweeping value iteration
         for a given number of iterations using the supplied parameters.
-    
+
     This approach updates states in order of the magnitude of their Bellman error, focusing computation on states where values are changing significantly.
     """
+
     def __init__(self, mdp: 'mdp.MarkovDecisionProcess', discount: float = 0.9, iterations: int = 100, theta: float = 1e-5) -> None:
         """
         Initialize prioritized sweeping value iteration agent.
@@ -190,5 +229,50 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
         Updates states in order of largest Bellman error, maintaining a priority queue
         of states to update.
         """
-        "*** YOUR CODE HERE ***"
-        
+        "*** CODE STARTS HERE ***"
+        # Step 1: Compute predecessors of all states
+        predecessors = collections.defaultdict(set)
+        for state in self.mdp.getStates():
+            if not self.mdp.isTerminal(state):
+                for action in self.mdp.getPossibleActions(state):
+                    for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+                        if prob > 0:
+                            predecessors[nextState].add(state)
+
+        # Step 2: Initialize priority queue
+        pq = util.PriorityQueue()
+        for state in self.mdp.getStates():
+            if not self.mdp.isTerminal(state):
+                actions = self.mdp.getPossibleActions(state)
+                if actions:
+                    best_q = max(
+                        self.computeQValueFromValues(state, action)
+                        for action in actions
+                    )
+                    error = abs(self.values[state] - best_q)
+                    pq.push(state, -error)
+
+        # Step 3: Run iterations
+        for _ in range(self.iterations):
+            if pq.isEmpty():
+                break
+            state = pq.pop()
+            if not self.mdp.isTerminal(state):
+                actions = self.mdp.getPossibleActions(state)
+                if actions:
+                    self.values[state] = max(
+                        self.computeQValueFromValues(state, action)
+                        for action in actions
+                    )
+            # Update predecessors
+            for pred in predecessors[state]:
+                if not self.mdp.isTerminal(pred):
+                    actions = self.mdp.getPossibleActions(pred)
+                    if actions:
+                        best_q = max(
+                            self.computeQValueFromValues(pred, action)
+                            for action in actions
+                        )
+                        error = abs(self.values[pred] - best_q)
+                        if error > self.theta:
+                            pq.update(pred, -error)
